@@ -44,6 +44,22 @@ namespace Directions {
                 exit(6);
         }
     }
+
+    static int flip(int dir) {
+        switch (dir) {
+            case Directions::N:
+                return Directions::S;
+            case Directions::S:
+                return Directions::N;
+            case Directions::E:
+                return Directions::W;
+            case Directions::W:
+                return Directions::E;
+            default:
+                std::cerr << "Error parsing direction: " << dir << std::endl;
+                exit(18);
+        }
+    }
 }
 
 

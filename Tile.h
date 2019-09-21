@@ -10,11 +10,20 @@
 
 class Tile {
 public:
-    int connections[4];
+    unsigned char connections[4];
 
     Tile(int north, int east, int south, int west);
 
+    Tile(unsigned char id);
+
     std::string toString();
+
+    /**
+     * Get hash for tile with these connections
+     */
+    unsigned char getIdentifier();
+
+    bool loops(const unsigned char direction);
 };
 
 

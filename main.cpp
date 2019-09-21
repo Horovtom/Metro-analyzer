@@ -1,15 +1,22 @@
+#include <random>
+
 #include <iostream>
 #include <map>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include "Tile.h"
+#include "Analyzer.h"
 
 std::vector<Tile> loadTilesList(const std::string &input);
 
 int main() {
-    std::vector<Tile> tilesList = loadTilesList("/home/lactosis/Documents/Programming/C++/Metro/input.txt");
 
+    std::vector<Tile> tilesList = loadTilesList("/home/lactosis/Documents/Programming/C++/Metro/input.txt");
+    Analyzer a(tilesList);
+    int length = a.fillWithLongestPossibleRoute(0, 0, Directions::W);
+    std::cout << length << std::endl;
+//    a.printCurrentBoard();
     return 0;
 }
 
