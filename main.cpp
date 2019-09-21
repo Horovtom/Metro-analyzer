@@ -10,12 +10,12 @@
 
 std::vector<Tile> loadTilesList(const std::string &input);
 
-int main() {
-
+int main(int argc, char **argv) {
     std::vector<Tile> tilesList = loadTilesList("/home/lactosis/Documents/Programming/C++/Metro/input.txt");
     Analyzer a(tilesList);
     int length = a.fillWithLongestPossibleRoute(0, 0, Directions::W);
     std::cout << length << std::endl;
+    a.showCurrentBoard();
 //    a.printCurrentBoard();
     return 0;
 }

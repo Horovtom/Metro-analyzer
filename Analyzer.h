@@ -37,6 +37,8 @@ public:
 
     std::pair<int, int> getCoordsAtDirection(std::pair<int, int> pos, int direction);
 
+    void showCurrentBoard();
+
 private:
     bool isValidPosition(int x, int y);
 
@@ -46,6 +48,7 @@ private:
      */
     int board[8][8]{};
 
+    void outputBoard(const std::string &path);
 };
 
 

@@ -6,12 +6,15 @@
 
 #include "Analyzer.h"
 #include <algorithm>
+#include <fstream>
+#include <zconf.h>
+#include <a.out.h>
 
 bool Analyzer::isValidPosition(int x, int y) {
     if (x < 0 || x > 7 || y < 0 || y > 7) return false;
 
-    if (x == 4 || x == 5)
-        if (y == 4 || y == 5)
+    if (x == 3 || x == 4)
+        if (y == 3 || y == 4)
             return false;
 
     return true;
@@ -25,21 +28,23 @@ int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
     std::vector<int> tiles;
     tiles.reserve(60);
     for (int i = 0; i < 60; ++i) tiles.push_back(i);
+    int tried = 0;
+    do {
+        std::shuffle(tiles.begin(), tiles.end(), std::mt19937(std::random_device()()));
 
-    std::shuffle(tiles.begin(), tiles.end(), std::mt19937(std::random_device()()));
-
-    int currIn = 0;
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            if (isValidPosition(i, j))
-                board[i][j] = tiles.at(currIn++) + 1;
+        int currIn = 0;
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < 8; ++j) {
+                if (isValidPosition(i, j))
+                    setTileAt(i, j, tiles.at(currIn++));
+            }
         }
-    }
+        tried++;
+        if (tried % 100000 == 0) std::cout << "Evaluated: " << tried / 1000 << "k positions" << std::endl;
+    } while (!isBoardValid());
 
-    if (!isBoardValid()) {
-        std::cerr << "Board is not valid!" << std::endl;
-    }
-
+    outputBoard("/home/lactosis/Documents/Programming/C++/Metro/output.txt");
+    std::cout << "Found valid board after: " << tried << " tries." << std::endl;
     return getLineLength(x, y, direction);
 }
 
@@ -134,6 +139,7 @@ int Analyzer::getLineLength(int x, int y, int direction) {
         currPos = getCoordsAtDirection(currPos, targetDir);
         currTile = getTileAt(currPos.first, currPos.second);
         cameFromDir = Directions::flip(targetDir);
+        length++;
     }
 
     return length;
@@ -151,6 +157,31 @@ std::pair<int, int> Analyzer::getCoordsAtDirection(std::pair<int, int> pos, int 
             return std::pair<int, int>(pos.first - 1, pos.second);
     }
     return std::pair<int, int>();
+}
+
+void Analyzer::outputBoard(const std::string &path) {
+    std::ofstream oss(path);
+    if (oss.is_open()) {
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < 8; ++j) {
+                Tile *t = getTileAt(i, j);
+                if (t != nullptr)
+                    oss << (int) getTileAt(i, j)->getIdentifier() << " ";
+                else
+                    oss << "- ";
+            }
+            oss << std::endl;
+        }
+
+        oss.close();
+    } else {
+        std::cerr << "Could not open output file at: " << path << std::endl;
+        exit(100);
+    }
+}
+
+void Analyzer::showCurrentBoard() {
+    execl("/home/lactosis/Documents/Programming/C++/Metro/visualiser/bin/visualiser", nullptr);
 }
 
 
