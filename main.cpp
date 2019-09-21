@@ -7,6 +7,7 @@
 #include <sstream>
 #include "Tile.h"
 #include "Analyzer.h"
+#include <algorithm>
 
 std::vector<Tile> loadTilesList(const std::string &input);
 
@@ -16,7 +17,6 @@ int main(int argc, char **argv) {
     int length = a.fillWithLongestPossibleRoute(0, 0, Directions::W);
     std::cout << length << std::endl;
     a.showCurrentBoard();
-//    a.printCurrentBoard();
     return 0;
 }
 

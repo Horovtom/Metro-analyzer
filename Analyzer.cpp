@@ -20,32 +20,70 @@ bool Analyzer::isValidPosition(int x, int y) {
     return true;
 }
 
+bool Analyzer::genNextValidPermutation(std::vector<int> *tiles) {
+    int posToCheck = -1;
+    int valToCheck = -1;
+
+    do {
+        if (posToCheck != -1) {
+            if (tiles->at(posToCheck) == valToCheck)
+                continue;
+
+            posToCheck = -1;
+            valToCheck = -1;
+        }
+
+        if (populateGrid(tiles, &posToCheck, &valToCheck))
+            return true;
+        // TODO: We need some better permutation generator, which can skip large sections of regular permutations
+    } while (std::next_permutation(tiles->begin(), tiles->end()));
+
+    std::cout << "We are actually out of permutations!" << std::endl;
+    return false;
+}
+
 int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
     // We need to generate all the possible combinations of tiles. These are maximum of 60! which is too much...
     // We need to prune the state-space as much as possible...
 
-    // TODO: Temp
     std::vector<int> tiles;
     tiles.reserve(60);
     for (int i = 0; i < 60; ++i) tiles.push_back(i);
-    int tried = 0;
-    do {
-        std::shuffle(tiles.begin(), tiles.end(), std::mt19937(std::random_device()()));
 
-        int currIn = 0;
-        for (int i = 0; i < 8; ++i) {
-            for (int j = 0; j < 8; ++j) {
-                if (isValidPosition(i, j))
-                    setTileAt(i, j, tiles.at(currIn++));
-            }
+    int longest = 0;
+
+    while (genNextValidPermutation(&tiles)) {
+        if (!isBoardValid())
+            std::cerr << "We have actually gotten an invalid board!" << std::endl;
+        int length = getLineLength(x, y, direction);
+        if (length > longest) {
+            std::cout << "New longest path: " << length << std::endl;
+            longest = length;
         }
-        tried++;
-        if (tried % 100000 == 0) std::cout << "Evaluated: " << tried / 1000 << "k positions" << std::endl;
-    } while (!isBoardValid());
+    }
 
-    outputBoard("/home/lactosis/Documents/Programming/C++/Metro/output.txt");
-    std::cout << "Found valid board after: " << tried << " tries." << std::endl;
-    return getLineLength(x, y, direction);
+    // We are done! We searched through everything!
+    return longest;
+
+
+//    int tried = 0;
+//    do {
+//        std::shuffle(tiles.begin(), tiles.end(), std::mt19937(std::random_device()()));
+//
+//        int currIn = 0;
+//        for (int i = 0; i < 8; ++i) {
+//            for (int j = 0; j < 8; ++j) {
+//                if (isValidPosition(i, j))
+//                    setTileAt(i, j, tiles.at(currIn++));
+//            }
+//        }
+//        tried++;
+//        if (tried % 100000 == 0) std::cout << "Evaluated: " << tried / 1000 << "k positions" << std::endl;
+//    } while (!isBoardValid());
+//
+//    outputBoard("/home/lactosis/Documents/Programming/C++/Metro/output.txt");
+//    std::cout << "Found valid board after: " << tried << " tries." << std::endl;
+//    return getLineLength(x, y, direction);
 }
 
 bool Analyzer::isBoardValid() {
@@ -182,6 +220,56 @@ void Analyzer::outputBoard(const std::string &path) {
 
 void Analyzer::showCurrentBoard() {
     execl("/home/lactosis/Documents/Programming/C++/Metro/visualiser/bin/visualiser", nullptr);
+}
+
+bool Analyzer::isValidTileOnPos(int x, int y, int tileIndex) {
+    Tile *t;
+    t = &tileRepository.at(tileIndex);
+
+    // Left edge
+    if (x == 0 && t->loops(Directions::W)) return false;
+    // Top edge
+    if (y == 0 && t->loops(Directions::N)) return false;
+    // Right edge
+    if (x == 7 && t->loops(Directions::E)) return false;
+    // Bottom edge
+    if (y == 7 && t->loops(Directions::S)) return false;
+
+    if (x == 2 && (y == 3 || y == 4) && t->loops(Directions::E)) return false;
+    if (x == 5 && (y == 3 || y == 4) && t->loops(Directions::W)) return false;
+    if (y == 2 && (x == 3 || x == 4) && t->loops(Directions::S)) return false;
+    if (y == 5 && (x == 3 || x == 4) && t->loops(Directions::N)) return false;
+
+    if (x == 0 && y == 0 &&
+        (t->connections[Directions::N] == Directions::W || t->connections[Directions::W] == Directions::N))
+        return false;
+    if (x == 7 && y == 0 &&
+        (t->connections[Directions::N] == Directions::E || t->connections[Directions::E] == Directions::N))
+        return false;
+    if (x == 0 && y == 7 &&
+        (t->connections[Directions::S] == Directions::W || t->connections[Directions::W] == Directions::S))
+        return false;
+    if (x == 7 && y == 7 &&
+        (t->connections[Directions::S] == Directions::E || t->connections[Directions::E] == Directions::S))
+        return false;
+
+    return true;
+}
+
+bool Analyzer::populateGrid(std::vector<int> *tiles, int *posToCheck, int *valToCheck) {
+    int index = 0;
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            if (!isValidTileOnPos(i, j, tiles->at(index))) {
+                *posToCheck = index;
+                *valToCheck = tiles->at(index);
+                return false;
+            }
+
+            setTileAt(i, j, tiles->at(index++));
+        }
+    }
+    return true;
 }
 
 

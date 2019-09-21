@@ -49,6 +49,12 @@ private:
     int board[8][8]{};
 
     void outputBoard(const std::string &path);
+
+    bool genNextValidPermutation(std::vector<int> *tiles);
+
+    bool isValidTileOnPos(int x, int y, int tileIndex);
+
+    bool populateGrid(std::vector<int> *tiles, int *posToCheck, int *valToCheck);
 };
 
 
