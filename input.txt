@@ -1,0 +1,26 @@
+# Tiles list
+# [How many], [from][where] [from][where] [from][where] [from][where]
+2 NE ES SW WN
+2 NN ES SE WW
+2 NS EE SW WN
+2 NW EE SS WN
+2 NN ES SW WE
+4 NW ES SN WE
+4 NS EN SW WE
+2 NN EW SE WS
+2 NW EN SS WE
+2 NW EN SE WS
+2 NE EW SS WN
+3 NE EN SW WS
+2 NN EW SS WE
+2 NS EN SE WW
+2 NS EE SN WW
+3 NW ES SE WN
+4 NS EW SN WE
+4 NS EW SE WN
+2 NN EE SS WW
+4 NE EW SN WS
+2 NE EN SS WW
+2 NE ES SN WW
+2 NN EE SW WS
+2 NW EE SN WS
