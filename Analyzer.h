@@ -8,6 +8,8 @@
 
 #include <vector>
 #include "Tile.h"
+#include <cmake_variables.h>
+
 
 class Analyzer {
 public:
@@ -46,6 +48,9 @@ public:
     void outputBoard(const std::string &path);
 
     bool isValidTileOnPositionByID(int x, int y, int tileID);
+
+    bool getNextPermutation(std::vector<int> *input, int badIndex);
+
 private:
 
     /**
@@ -53,12 +58,23 @@ private:
      * for example for position 0,0 we can get the actual tile as: tileRepository.at(board[0][0] - 1)
      */
     int board[8][8]{};
+    int currToChange = -1;
 
 
     bool genNextValidPermutation(std::vector<int> *tiles);
 
 
-    bool populateGrid(std::vector<int> *tiles, int *posToCheck, int *valToCheck);
+    bool populateGrid(std::vector<int> *tiles, int *posToCheck);
+
+    bool checkLast20Same(std::vector<int> *tiles, const int last20[20]);
+
+    bool nextPermTileAt(std::vector<int> *tiles, int posToChange);
+
+    int getLastOfLine(int x, int y, int direction);
+
+    int coordToIndex(int x, int y);
+
+    void outputWriteBoard(std::vector<int> *tiles, const std::string &path);
 };
 
 

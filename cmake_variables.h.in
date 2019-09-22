@@ -1,0 +1,16 @@
+#ifndef METRO_CMAKE_VARIABLES_H
+#define METRO_CMAKE_VARIABLES_H
+
+#include <sstream>
+#include <iostream>
+namespace Project {
+
+#cmakedefine PROJECT_SOURCE_DIR "@PROJECT_SOURCE_DIR@"
+
+    static std::string getProjectRootFilePath(std::string suffix) {
+        std::stringstream ss;
+        ss << PROJECT_SOURCE_DIR << suffix;
+        return ss.str();
+    }
+}
+#endif //METRO_CMAKE_VARIABLES_H

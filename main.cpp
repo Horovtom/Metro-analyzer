@@ -9,6 +9,7 @@
 #include "Analyzer.h"
 #include "SpecPermutations.h"
 #include <algorithm>
+//#include <cmake_variables.h>
 
 std::vector<Tile> loadTilesList(const std::string &input);
 
@@ -18,25 +19,26 @@ long double getForPositions(int *positionsLeft, int groupSize, int numOfGroups);
 
 void getValidForTiles();
 
-int main(int argc, char **argv) {
 
-    getValidForTiles();
+int main(int argc, char **argv) {
+//    getValidForTiles();
 
 //    calculateIt();
 
-//    std::vector<Tile> tilesList = loadTilesList("/home/lactosis/Documents/Programming/C++/Metro/input.txt");
-//    Analyzer a(tilesList);
-//    int length = a.fillWithLongestPossibleRoute(0, 0, Directions::W);
-//    std::cout << length << std::endl;
-//    a.showCurrentBoard();
+    std::vector<Tile> tilesList = loadTilesList(Project::getProjectRootFilePath("/input.txt"));
+    Analyzer a(tilesList);
+    int length = a.fillWithLongestPossibleRoute(0, 0, Directions::W);
+    std::cout << length << std::endl;
+    a.showCurrentBoard();
     return 0;
 }
+
 
 void getValidForTiles() {
     std::vector<int> validTileNumbers{2, 3, 4, 5, 6, 7, 8, 9,
                                       12, 13, 14, 15, 16, 17, 18, 19,
                                       22, 23, 24, 25, 26, 27, 28, 29};
-    std::vector<Tile> tilesList = loadTilesList("/home/lactosis/Documents/Programming/C++/Metro/input.txt");
+    std::vector<Tile> tilesList = loadTilesList(Project::getProjectRootFilePath("/input.txt"));
     Analyzer a(tilesList);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {

@@ -1,5 +1,7 @@
 #include <random>
 
+#include <random>
+
 //
 // Created by lactosis on 21.9.19.
 //
@@ -8,7 +10,7 @@
 #include <algorithm>
 #include <fstream>
 #include <zconf.h>
-#include <a.out.h>
+#include <stdlib.h>
 
 bool Analyzer::isValidPosition(int x, int y) {
     if (x < 0 || x > 7 || y < 0 || y > 7) return false;
@@ -22,24 +24,45 @@ bool Analyzer::isValidPosition(int x, int y) {
 
 bool Analyzer::genNextValidPermutation(std::vector<int> *tiles) {
     int posToCheck = -1;
-    int valToCheck = -1;
+    if (currToChange != -1) {
+        if (!nextPermTileAt(tiles, currToChange))
+            return false;
+        currToChange = -1;
+        if (populateGrid(tiles, &posToCheck))
+            return true;
+        return genNextValidPermutation(tiles);
+    }
 
-    do {
-        if (posToCheck != -1) {
-            if (tiles->at(posToCheck) == valToCheck)
-                continue;
+    int last20[20];
+    int s = tiles->size();
+    for (int i = 0; i < 20; ++i) {
+        last20[i] = tileRepository.at(tiles->at(s - i - 1)).getIdentifier();
+    }
 
-            posToCheck = -1;
-            valToCheck = -1;
+    int identical = 0;
+    while (true) {
+        if (!std::next_permutation(tiles->begin(), tiles->end()))
+            return false;
+        if (!checkLast20Same(tiles, last20)) break;
+        identical++;
+    }
+//    std::cout << "\tSkipped " << identical << " identical permutaitons" << std::endl;
+
+
+    int tries = 0;
+    while (true) {
+        tries++;
+        if (populateGrid(tiles, &posToCheck)) {
+//            std::cout << "Tries: " << tries << std::endl;
+            return true;
         }
 
-        if (populateGrid(tiles, &posToCheck, &valToCheck))
-            return true;
-        // TODO: We need some better permutation generator, which can skip large sections of regular permutations
-    } while (std::next_permutation(tiles->begin(), tiles->end()));
-
-    std::cout << "We are actually out of permutations!" << std::endl;
-    return false;
+        if (posToCheck != -1) {
+            if (!nextPermTileAt(tiles, posToCheck))
+                return false;
+            posToCheck = -1;
+        }
+    }
 }
 
 int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
@@ -53,10 +76,13 @@ int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
     int longest = 0;
 
     while (genNextValidPermutation(&tiles)) {
-        if (!isBoardValid())
-            std::cerr << "We have actually gotten an invalid board!" << std::endl;
+
+//        if (!isBoardValid())
+//            std::cerr << "We have actually gotten an invalid board!" << std::endl;
         int length = getLineLength(x, y, direction);
+        currToChange = getLastOfLine(x, y, direction);
         if (length > longest) {
+            outputBoard(Project::getProjectRootFilePath("/output.txt"));
             std::cout << "New longest path: " << length << std::endl;
             longest = length;
         }
@@ -64,26 +90,36 @@ int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
 
     // We are done! We searched through everything!
     return longest;
+}
 
+bool Analyzer::getNextPermutation(std::vector<int> *input, int pivot) {
+    int largerIndex = -1;
+    for (int i = pivot + 1; i < input->size(); ++i) {
+        if ((*input)[i] > (*input)[pivot]) {
+            largerIndex = i;
+            break;
+        }
+    }
 
-//    int tried = 0;
-//    do {
-//        std::shuffle(tiles.begin(), tiles.end(), std::mt19937(std::random_device()()));
-//
-//        int currIn = 0;
-//        for (int i = 0; i < 8; ++i) {
-//            for (int j = 0; j < 8; ++j) {
-//                if (isValidPosition(i, j))
-//                    setTileAt(i, j, tiles.at(currIn++));
-//            }
-//        }
-//        tried++;
-//        if (tried % 100000 == 0) std::cout << "Evaluated: " << tried / 1000 << "k positions" << std::endl;
-//    } while (!isBoardValid());
-//
-//    outputBoard("/home/lactosis/Documents/Programming/C++/Metro/output.txt");
-//    std::cout << "Found valid board after: " << tried << " tries." << std::endl;
-//    return getLineLength(x, y, direction);
+    if (largerIndex != -1) {
+        std::swap((*input)[pivot], (*input)[largerIndex]);
+        // sort subarray from p+1
+        std::sort(input->begin() + pivot + 1, input->end());
+    } else {
+
+        // Did not find it! We have to swap for larger
+        largerIndex = pivot;
+        for (int i = pivot; i < input->size(); ++i) {
+            if (input->at(i) < input->at(largerIndex) && input->at(i) > input->at(pivot - 1))
+                largerIndex = i;
+        }
+        if (input->at(largerIndex) < input->at(pivot - 1))
+            return std::next_permutation(input->begin(), input->end());
+        std::swap((*input)[pivot - 1], (*input)[largerIndex]);
+        std::sort(input->begin() + pivot, input->end());
+    }
+
+    return true;
 }
 
 bool Analyzer::isBoardValid() {
@@ -103,19 +139,19 @@ bool Analyzer::isBoardValid() {
     // Check corners
     t = getTileAt(0, 0);
     if (t != nullptr &&
-        (t->connections[Directions::W] == Directions::N || t->connections[Directions::N] == Directions::W))
+            (t->connections[Directions::W] == Directions::N || t->connections[Directions::N] == Directions::W))
         return false;
     t = getTileAt(7, 0);
     if (t != nullptr &&
-        (t->connections[Directions::E] == Directions::N || t->connections[Directions::N] == Directions::E))
+            (t->connections[Directions::E] == Directions::N || t->connections[Directions::N] == Directions::E))
         return false;
     t = getTileAt(0, 7);
     if (t != nullptr &&
-        (t->connections[Directions::W] == Directions::S || t->connections[Directions::S] == Directions::W))
+            (t->connections[Directions::W] == Directions::S || t->connections[Directions::S] == Directions::W))
         return false;
     t = getTileAt(7, 7);
     if (t != nullptr &&
-        (t->connections[Directions::E] == Directions::S || t->connections[Directions::S] == Directions::E))
+            (t->connections[Directions::E] == Directions::S || t->connections[Directions::S] == Directions::E))
         return false;
 
     // Check middle
@@ -165,7 +201,6 @@ void Analyzer::resetTileAt(int x, int y) {
 }
 
 int Analyzer::getLineLength(int x, int y, int direction) {
-
     Tile *currTile = getTileAt(x, y);
     std::pair<int, int> currPos(x, y);
     unsigned char cameFromDir = direction;
@@ -179,8 +214,6 @@ int Analyzer::getLineLength(int x, int y, int direction) {
         cameFromDir = Directions::flip(targetDir);
         length++;
     }
-
-    return length;
 }
 
 std::pair<int, int> Analyzer::getCoordsAtDirection(std::pair<int, int> pos, int direction) {
@@ -219,7 +252,14 @@ void Analyzer::outputBoard(const std::string &path) {
 }
 
 void Analyzer::showCurrentBoard() {
-    execl("/home/lactosis/Documents/Programming/C++/Metro/visualiser/bin/visualiser", nullptr);
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+    std::string pathOld = Project::getProjectRootFilePath("/visualiser/bin/win/visualiser.exe");
+    const char *path = pathOld.c_str();
+    int result = system(path);
+    std::cout << "Visualiser return code: " << result << ", launched on path: " << path << std::endl;
+#else
+    execl(getProjectRootFilePath("/visualiser/bin/linux/visualiser"), nullptr);
+#endif
 }
 
 bool Analyzer::isValidTileOnPos(int x, int y, int tileIndex) {
@@ -241,7 +281,7 @@ bool Analyzer::isValidTileOnPos(int x, int y, int tileIndex) {
     if (y == 5 && (x == 3 || x == 4) && t->loops(Directions::N)) return false;
 
     if (x == 0 && y == 0 &&
-        (t->connections[Directions::N] == Directions::W || t->connections[Directions::W] == Directions::N))
+            (t->connections[Directions::N] == Directions::W || t->connections[Directions::W] == Directions::N))
         return false;
     if (x == 7 && y == 0 &&
         (t->connections[Directions::N] == Directions::E || t->connections[Directions::E] == Directions::N))
@@ -256,13 +296,13 @@ bool Analyzer::isValidTileOnPos(int x, int y, int tileIndex) {
     return true;
 }
 
-bool Analyzer::populateGrid(std::vector<int> *tiles, int *posToCheck, int *valToCheck) {
+bool Analyzer::populateGrid(std::vector<int> *tiles, int *posToCheck) {
     int index = 0;
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
+            if (!isValidPosition(i, j)) continue;
             if (!isValidTileOnPos(i, j, tiles->at(index))) {
                 *posToCheck = index;
-                *valToCheck = tiles->at(index);
                 return false;
             }
 
@@ -278,6 +318,72 @@ bool Analyzer::isValidTileOnPositionByID(int x, int y, int tileID) {
             return isValidTileOnPos(x, y, i);
     }
     return false;
+}
+
+bool Analyzer::checkLast20Same(std::vector<int> *tiles, const int *last20) {
+    int s = tiles->size();
+    for (int i = 0; i < 20; ++i) {
+        if (tileRepository.at(tiles->at(s - i - 1)).getIdentifier() != last20[i])
+            return false;
+    }
+    return true;
+}
+
+bool Analyzer::nextPermTileAt(std::vector<int> *tiles, int posToChange) {
+    int oldID = tileRepository.at(tiles->at(posToChange)).getIdentifier();
+    while (true) {
+        if (!getNextPermutation(tiles, posToChange))
+            return false;
+        if (tileRepository.at(tiles->at(posToChange)).getIdentifier() != oldID)
+            break;
+
+    }
+    return true;
+}
+
+int Analyzer::getLastOfLine(int x, int y, int direction) {
+    Tile *currTile = getTileAt(x, y);
+    std::pair<int, int> currPos(x, y);
+    unsigned char cameFromDir = direction;
+
+    int largestTileIndex = coordToIndex(x, y);
+    while (true) {
+        if (currTile == nullptr) return largestTileIndex;
+        unsigned char targetDir = currTile->connections[cameFromDir];
+        currPos = getCoordsAtDirection(currPos, targetDir);
+        int currIndex = coordToIndex(currPos.first, currPos.second);
+        if (currIndex > largestTileIndex)
+            largestTileIndex = currIndex;
+
+        currTile = getTileAt(currPos.first, currPos.second);
+        cameFromDir = Directions::flip(targetDir);
+    }
+}
+
+int Analyzer::coordToIndex(int x, int y) {
+    int index = y * 8 + x;
+    if (y > 3)
+        index -= 2;
+    else if (y == 3)
+        if (x > 2) index -= 2;
+
+    if (y > 4)
+        index -= 2;
+    else if (y == 4)
+        if (x > 2) index -= 2;
+
+    return index;
+}
+
+void Analyzer::outputWriteBoard(std::vector<int> *tiles, const std::string &path) {
+    int index = 0;
+    for (int i = 0; i < 8; ++i)
+        for (int j = 0; j < 8; ++j) {
+            if (isValidPosition(i, j))
+                setTileAt(i, j, tiles->at(index++));
+        }
+
+    outputBoard(path);
 }
 
 
