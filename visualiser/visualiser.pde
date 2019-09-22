@@ -37,7 +37,14 @@ void draw() {
 
   for (int i = 0; i < 8; ++i) 
     for (int j = 0; j < 8; ++j) {
-      tiles[i][j].drawAt(i*squareSize, j*squareSize, squareSize);
+      if (tiles[i][j] != null)
+        tiles[i][j].drawAt(i*squareSize, j*squareSize, squareSize);
+      else
+      {
+        fill(0, 0, 255);
+        rect(i*squareSize, j*squareSize, squareSize, squareSize);
+        noFill();
+      }
     }
 }
 
@@ -56,7 +63,14 @@ int flip(int dir) {
 }
 
 void keyPressed() {
- if (key == ' ') {
-  loadGrid(); 
- }
+  if (key == ' ') {
+    loadGrid();
+  }
+}
+
+void mousePressed() {
+  int squareSize = width / 8;
+  int x = mouseX / squareSize;
+  int y = mouseY / squareSize;
+  tiles[x][y] = null;
 }
