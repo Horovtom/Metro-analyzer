@@ -272,5 +272,13 @@ bool Analyzer::populateGrid(std::vector<int> *tiles, int *posToCheck, int *valTo
     return true;
 }
 
+bool Analyzer::isValidTileOnPositionByID(int x, int y, int tileID) {
+    for (int i = 0; i < tileRepository.size(); ++i) {
+        if (tileRepository.at(i).getIdentifier() == tileID)
+            return isValidTileOnPos(x, y, i);
+    }
+    return false;
+}
+
 
 

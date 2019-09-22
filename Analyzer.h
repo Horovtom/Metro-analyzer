@@ -39,8 +39,14 @@ public:
 
     void showCurrentBoard();
 
-private:
     bool isValidPosition(int x, int y);
+
+    bool isValidTileOnPos(int x, int y, int tileIndex);
+
+    void outputBoard(const std::string &path);
+
+    bool isValidTileOnPositionByID(int x, int y, int tileID);
+private:
 
     /**
      * Values are indices of tileRepository + 1
@@ -48,11 +54,9 @@ private:
      */
     int board[8][8]{};
 
-    void outputBoard(const std::string &path);
 
     bool genNextValidPermutation(std::vector<int> *tiles);
 
-    bool isValidTileOnPos(int x, int y, int tileIndex);
 
     bool populateGrid(std::vector<int> *tiles, int *posToCheck, int *valToCheck);
 };

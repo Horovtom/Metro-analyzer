@@ -3,4 +3,4 @@ project(Metro)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(Metro main.cpp Tile.cpp Tile.h Directions.h Analyzer.cpp Analyzer.h)
+add_executable(Metro main.cpp Tile.cpp Tile.h Directions.h Analyzer.cpp Analyzer.h SpecPermutations.h)
