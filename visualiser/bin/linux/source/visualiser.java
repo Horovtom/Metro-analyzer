@@ -14,37 +14,90 @@ import java.io.IOException;
 
 public class visualiser extends PApplet {
 
-public static final int N = 0; //<>//
+public static final int N = 0; //<>// //<>// //<>//
 public static final int E = 1;
 public static final int S = 2;
 public static final int W = 3;
+public static final int UNSET = -1;
 
 Tile[][] tiles;
+
+int startX, startY, startDirection = UNSET;
 
 public void setup() {
   
   tiles = new Tile[8][8];
   loadGrid();
+  loadHighlightedPath();
+}
+
+public void loadHighlightedPath() {
+  int x = startX, y = startY;
+  int direction = startDirection;
+  if (direction == UNSET) return;
+
+  while (true) {
+    Tile t = tiles[x][y];
+    if (t == null || t.empty) return;
+    t.highlight[direction] = true; //<>//
+    direction = t.connections[direction];
+    if (direction == N)
+      y--;
+    else if (direction == S) 
+      y++;
+    else if (direction == W) 
+      x--;
+    else if (direction == E)
+      x++;
+    else 
+    break;
+
+    direction = flip(direction);
+
+    // Bound detection
+    if (x < 0 || x >=8 || y < 0 || y >= 8) break;
+
+    // Cycle detection
+    if (x == startX && y == startY && direction == startDirection) return;
+  }
 }
 
 public void loadGrid() {
   String path = "../../../output.txt";
+  //String path = "/home/lactosis/Documents/Programming/C++/Metro/output.txt";
   String[] lines = loadStrings(path);
 
-  int row = 0;
+  int row = -1;
+
 
   for (String line : lines) {
-    String[] tokens = line.split(" ");
-    int column = 0;   
-    for (String token : tokens) {
-      if (token.equals("-"))
-        tiles[row][column++] = new Tile();
-      else
-        tiles[row][column++] = new Tile(Integer.parseInt(token));
+    if (row == -1) {
+      // Initialization line
+      if ( line.length() > 0) {
+        String[] split = line.split(" ");
+        if (split.length > 0) {
+          if (split.length != 3) {
+            println("INVALID FORMAT!");
+            exit();
+          }
+
+          startX = Integer.parseInt(split[0]);
+          startY = Integer.parseInt(split[1]);
+          startDirection = Integer.parseInt(split[2]);
+        }
+      }
+    } else {
+      String[] tokens = line.split(" ");
+      int column = 0;   
+      for (String token : tokens) {
+        if (token.equals("-"))
+          tiles[row][column++] = new Tile();
+        else
+          tiles[row][column++] = new Tile(Integer.parseInt(token));
+      }
     }
     row++;
   }
-  // TODO: DO it!
 }
 
 public void draw() {
@@ -90,9 +143,10 @@ public void mousePressed() {
   int y = mouseY / squareSize;
   tiles[x][y] = null;
 }
-class Tile {
+class Tile { //<>//
   int[] connections;
   boolean empty;
+  boolean[] highlight;
 
   Tile() {
     empty = true;
@@ -101,7 +155,8 @@ class Tile {
   Tile(int id) {
     empty = false;
     connections = getConnectionsFromId(id);
-  }
+    highlight = new boolean[4];
+  }  
 
   public int[] getConnectionsFromId(int id) {
     int[] res = new int[4];
@@ -175,7 +230,10 @@ class Tile {
   }
 
   public void drawLine(PVector from, PVector to, int fromDir, int toDir) {
-    stroke(255, 0, 0);
+    if (highlight[fromDir]) 
+      stroke(0, 255, 0);
+    else
+      stroke(255, 0, 0);
     strokeWeight(1);
     // Is it a straight line?
     if (flip(fromDir) == toDir) {   
@@ -204,7 +262,7 @@ class Tile {
       arc(midPoint.x, midPoint.y, ecc*2, ecc*2, lowerBound, lowerBound + PI);
       return;
     }
-    
+
     // So it is a curve then...
     PVector corner;
     if (fromDir % 2 == 0) {
@@ -213,15 +271,15 @@ class Tile {
       corner = new PVector(from.x, to.y);
     }
     int ecc = (int) PVector.dist(corner, from);
-    
+
     if ((fromDir - toDir + 4) % 4 == 1) {
       // We are turning right, do the small arc
-      
+
       arc(corner.x, corner.y, ecc*2, ecc*2, lowerBound, lowerBound + PI/2);
     } else {
       // We are turning left, do the large arc
       lowerBound -= PI * 1.5f;
-      arc(corner.x, corner.y, ecc*2, ecc*2, lowerBound , lowerBound + PI/2);
+      arc(corner.x, corner.y, ecc*2, ecc*2, lowerBound, lowerBound + PI/2);
     }
   }
 }

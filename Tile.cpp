@@ -74,3 +74,8 @@ Tile::Tile(unsigned char id) {
 bool Tile::loops(const unsigned char direction) {
     return connections[direction] == direction;
 }
+
+bool Tile::equals(Tile &pTile) {
+    return pTile.connections[0] == connections[0] && pTile.connections[1] == connections[1] &&
+           pTile.connections[2] == connections[2] && pTile.connections[3] == connections[3];
+}

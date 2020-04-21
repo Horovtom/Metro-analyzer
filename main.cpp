@@ -9,6 +9,7 @@
 #include "Analyzer.h"
 #include "SpecPermutations.h"
 #include <algorithm>
+#include <unistd.h>
 //#include <cmake_variables.h>
 
 std::vector<Tile> loadTilesList(const std::string &input);
@@ -24,7 +25,7 @@ int main(int argc, char **argv) {
 //    getValidForTiles();
 
 //    calculateIt();
-
+//
     std::vector<Tile> tilesList = loadTilesList(Project::getProjectRootFilePath("/input.txt"));
     Analyzer a(tilesList);
     int length = a.fillWithLongestPossibleRoute(0, 0, Directions::W);
@@ -42,7 +43,7 @@ void getValidForTiles() {
     Analyzer a(tilesList);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
-            if (a.isValidPosition(i, j)) {
+            if (a.isPlaceablePosition(i, j)) {
 //                std::cout << "Position: " << i << "," << j << " - ";
                 int howMany = 0;
                 for (int c: validTileNumbers) {

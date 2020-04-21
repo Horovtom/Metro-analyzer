@@ -24,6 +24,8 @@ public:
     unsigned char getIdentifier();
 
     bool loops(const unsigned char direction);
+
+    bool equals(Tile &pTile);
 };
 
 

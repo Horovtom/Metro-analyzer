@@ -8,6 +8,7 @@
 
 #include <vector>
 #include "Tile.h"
+#include <mutex>
 #include <cmake_variables.h>
 
 
@@ -33,6 +34,8 @@ public:
 
     void setTileAt(int x, int y, int tileIndex);
 
+    void setTileAt(int x, int y, int tileIndex, int board[8][8]);
+
     void resetTileAt(int x, int y);
 
     int getLineLength(int x, int y, int direction);
@@ -41,15 +44,13 @@ public:
 
     void showCurrentBoard();
 
-    bool isValidPosition(int x, int y);
+    bool isPlaceablePosition(int x, int y);
 
     bool isValidTileOnPos(int x, int y, int tileIndex);
 
     void outputBoard(const std::string &path);
 
     bool isValidTileOnPositionByID(int x, int y, int tileID);
-
-    bool getNextPermutation(std::vector<int> *input, int badIndex);
 
 private:
 
@@ -60,21 +61,47 @@ private:
     int board[8][8]{};
     int currToChange = -1;
 
+    std::mutex mut;
 
-    bool genNextValidPermutation(std::vector<int> *tiles);
+    long long int cycle = 0;
 
+    int longestPathLength = 0;
+    int longestBoard[8][8]{};
 
     bool populateGrid(std::vector<int> *tiles, int *posToCheck);
 
     bool checkLast20Same(std::vector<int> *tiles, const int last20[20]);
 
-    bool nextPermTileAt(std::vector<int> *tiles, int posToChange);
-
     int getLastOfLine(int x, int y, int direction);
 
     int coordToIndex(int x, int y);
 
-    void outputWriteBoard(std::vector<int> *tiles, const std::string &path);
+    void overwriteBoard(std::vector<int> *tiles);
+
+    void csp(int x, int y, int direction, std::vector<std::pair<int, int>> *tiles, int lengthSoFar, int depth);
+
+//    static void cspStatic(int x, int y, int direction, std::vector<std::pair<int, int>> *tiles, int lengthSoFar, int depth, int grid[8][8], int *longestBoard[8][8], int *longestPathLength);
+
+    void resetBoard();
+
+    void resetBoard(int board[8][8]);
+
+    std::vector<std::pair<int, int>> getTileCounts();
+
+    void deleteTileAt(int i, int j);
+
+    void deleteTileAt(int i, int j, int board[8][8]);
+
+    /**
+     * @param direction Direction from which the lien comes to the x,y tile.
+     * @return  tuple (x, y, direction, length)
+     *          finishing position of a line. x,y are the finish coordinates (the tile the line comes out to, not the
+     *          last tile of the line). Direction is  the direction, the line comes from and length is the number of
+     *          tiles along this line (if the line is a cycle, the length will be -1).
+     */
+    std::tuple<int, int, int, int> getLineLastPosition(int x, int y, int direction);
+
+    void cspStart(int x, int y, int direction);
 };
 
 

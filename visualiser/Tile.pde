@@ -1,6 +1,7 @@
 class Tile { //<>//
   int[] connections;
   boolean empty;
+  boolean[] highlight;
 
   Tile() {
     empty = true;
@@ -9,7 +10,8 @@ class Tile { //<>//
   Tile(int id) {
     empty = false;
     connections = getConnectionsFromId(id);
-  }
+    highlight = new boolean[4];
+  }  
 
   int[] getConnectionsFromId(int id) {
     int[] res = new int[4];
@@ -83,7 +85,10 @@ class Tile { //<>//
   }
 
   void drawLine(PVector from, PVector to, int fromDir, int toDir) {
-    stroke(255, 0, 0);
+    if (highlight[fromDir]) 
+      stroke(0, 255, 0);
+    else
+      stroke(255, 0, 0);
     strokeWeight(1);
     // Is it a straight line?
     if (flip(fromDir) == toDir) {   
@@ -112,7 +117,7 @@ class Tile { //<>//
       arc(midPoint.x, midPoint.y, ecc*2, ecc*2, lowerBound, lowerBound + PI);
       return;
     }
-    
+
     // So it is a curve then...
     PVector corner;
     if (fromDir % 2 == 0) {
@@ -121,15 +126,15 @@ class Tile { //<>//
       corner = new PVector(from.x, to.y);
     }
     int ecc = (int) PVector.dist(corner, from);
-    
+
     if ((fromDir - toDir + 4) % 4 == 1) {
       // We are turning right, do the small arc
-      
+
       arc(corner.x, corner.y, ecc*2, ecc*2, lowerBound, lowerBound + PI/2);
     } else {
       // We are turning left, do the large arc
       lowerBound -= PI * 1.5;
-      arc(corner.x, corner.y, ecc*2, ecc*2, lowerBound , lowerBound + PI/2);
+      arc(corner.x, corner.y, ecc*2, ecc*2, lowerBound, lowerBound + PI/2);
     }
   }
 }

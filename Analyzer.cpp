@@ -9,10 +9,19 @@
 #include "Analyzer.h"
 #include <algorithm>
 #include <fstream>
+#include <thread>
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #include <zconf.h>
+#else
+
+#include <unistd.h>
+
+#endif
+
 #include <stdlib.h>
 
-bool Analyzer::isValidPosition(int x, int y) {
+bool Analyzer::isPlaceablePosition(int x, int y) {
     if (x < 0 || x > 7 || y < 0 || y > 7) return false;
 
     if (x == 3 || x == 4)
@@ -22,105 +31,111 @@ bool Analyzer::isValidPosition(int x, int y) {
     return true;
 }
 
-bool Analyzer::genNextValidPermutation(std::vector<int> *tiles) {
-    int posToCheck = -1;
-    if (currToChange != -1) {
-        if (!nextPermTileAt(tiles, currToChange))
-            return false;
-        currToChange = -1;
-        if (populateGrid(tiles, &posToCheck))
-            return true;
-        return genNextValidPermutation(tiles);
+
+void Analyzer::csp(int x, int y, int direction, std::vector<std::pair<int, int>> *tiles, int lenSoFar, int depth) {
+    // Is it the end of the line?
+    if (!isPlaceablePosition(x, y)) {
+        // It is the actual end of line, lets not do anything.
+        std::cerr << "End of line at the start?!" << std::endl;
+        return;
     }
 
-    int last20[20];
-    int s = tiles->size();
-    for (int i = 0; i < 20; ++i) {
-        last20[i] = tileRepository.at(tiles->at(s - i - 1)).getIdentifier();
-    }
 
-    int identical = 0;
-    while (true) {
-        if (!std::next_permutation(tiles->begin(), tiles->end()))
-            return false;
-        if (!checkLast20Same(tiles, last20)) break;
-        identical++;
-    }
-//    std::cout << "\tSkipped " << identical << " identical permutaitons" << std::endl;
+    for (auto &tile : *tiles) {
+        if (tile.second <= 0) continue;
+        if (!isValidTileOnPos(x, y, tile.first)) continue;
 
+        tile.second--;
+        setTileAt(x, y, tile.first);
 
-    int tries = 0;
-    while (true) {
-        tries++;
-        if (populateGrid(tiles, &posToCheck)) {
-//            std::cout << "Tries: " << tries << std::endl;
-            return true;
+        std::tuple<int, int, int, int> finishPosition = getLineLastPosition(x, y, direction);
+        int tarX = std::get<0>(finishPosition);
+        int tarY = std::get<1>(finishPosition);
+        int tarDirection = std::get<2>(finishPosition);
+        int length = std::get<3>(finishPosition) + lenSoFar;
+        if (!isPlaceablePosition(tarX, tarY)) {
+            // We actually ended the line...
+            // Check if it is longer than the current max found.
+            if (++cycle % 1000000000 == 0)
+                std::cout << "Explored " << cycle / 1000000 << "M possibilities" << std::endl;
+            if (longestPathLength < length) {
+                std::lock_guard<std::mutex> guard(mut);
+                if (longestPathLength < length) {
+                    // Overwrite
+                    for (int i = 0; i < 8; ++i) {
+                        for (int j = 0; j < 8; ++j) {
+                            longestBoard[i][j] = board[i][j];
+                        }
+                    }
+                    longestPathLength = length;
+                    std::cout << "New length: " << length << std::endl;
+                    if (length > 105)
+                        showCurrentBoard();
+                }
+            }
+        } else {
+            csp(tarX, tarY, tarDirection, tiles, length, depth + 1);
         }
 
-        if (posToCheck != -1) {
-            if (!nextPermTileAt(tiles, posToCheck))
-                return false;
-            posToCheck = -1;
-        }
+        deleteTileAt(x, y);
+        tile.second++;
     }
 }
+
+
+void Analyzer::cspStart(int x, int y, int direction) {
+
+//    std::vector<int[8][8]> grids;
+//    std::vector<std::thread> threads;
+//    std::vector<std::pair<int, int>> freeToUse = getTileCounts();
+//
+//    grids.resize(freeToUse.size() + 1);
+//    int longest = 0;
+//
+//    for (int i = 0 ; i < freeToUse.size(); ++i ) {
+//        std::vector<std::pair<int, int>> ftu = freeToUse;
+//        resetBoard(grids.at(i));
+//        std::thread th(cspStatic, x, y, direction, ftu, 0, 1, grids.at(i), &grids.at(grids.size() -1 ), &longest);
+//    }
+
+};
+
+std::vector<std::pair<int, int>> Analyzer::getTileCounts() {
+    std::vector<std::pair<int, int>> res;
+
+    for (int tileIndex = 0; tileIndex < tileRepository.size(); ++tileIndex) {
+        bool found = false;
+        for (auto &re : res) {
+            if (tileRepository.at(tileIndex).equals(tileRepository.at(re.first))) {
+                re.second++;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            res.emplace_back(tileIndex, 1);
+    }
+
+    return res;
+}
+
 
 int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
-    // We need to generate all the possible combinations of tiles. These are maximum of 60! which is too much...
-    // We need to prune the state-space as much as possible...
+    // Ok, permutations are not going to cut it...
+    // Let's do some form of CSP
 
-    std::vector<int> tiles;
-    tiles.reserve(60);
-    for (int i = 0; i < 60; ++i) tiles.push_back(i);
+    resetBoard();
 
-    int longest = 0;
+    std::vector<std::pair<int, int>> freeToUse = getTileCounts();
 
-    while (genNextValidPermutation(&tiles)) {
+//    cspStart(x,y,direction);
 
-//        if (!isBoardValid())
-//            std::cerr << "We have actually gotten an invalid board!" << std::endl;
-        int length = getLineLength(x, y, direction);
-        currToChange = getLastOfLine(x, y, direction);
-        if (length > longest) {
-            outputBoard(Project::getProjectRootFilePath("/output.txt"));
-            std::cout << "New longest path: " << length << std::endl;
-            longest = length;
-        }
-    }
+    csp(x, y, direction, &freeToUse, 0, 1);
 
-    // We are done! We searched through everything!
-    return longest;
+    return longestPathLength;
 }
 
-bool Analyzer::getNextPermutation(std::vector<int> *input, int pivot) {
-    int largerIndex = -1;
-    for (int i = pivot + 1; i < input->size(); ++i) {
-        if ((*input)[i] > (*input)[pivot]) {
-            largerIndex = i;
-            break;
-        }
-    }
-
-    if (largerIndex != -1) {
-        std::swap((*input)[pivot], (*input)[largerIndex]);
-        // sort subarray from p+1
-        std::sort(input->begin() + pivot + 1, input->end());
-    } else {
-
-        // Did not find it! We have to swap for larger
-        largerIndex = pivot;
-        for (int i = pivot; i < input->size(); ++i) {
-            if (input->at(i) < input->at(largerIndex) && input->at(i) > input->at(pivot - 1))
-                largerIndex = i;
-        }
-        if (input->at(largerIndex) < input->at(pivot - 1))
-            return std::next_permutation(input->begin(), input->end());
-        std::swap((*input)[pivot - 1], (*input)[largerIndex]);
-        std::sort(input->begin() + pivot, input->end());
-    }
-
-    return true;
-}
 
 bool Analyzer::isBoardValid() {
     Tile *t;
@@ -187,12 +202,16 @@ Analyzer::Analyzer(const std::vector<Tile> &tiles) {
 }
 
 Tile *Analyzer::getTileAt(int x, int y) {
-    if (!isValidPosition(x, y)) return nullptr;
+    if (!isPlaceablePosition(x, y)) return nullptr;
     if (board[y][x] == 0) return nullptr;
     return &tileRepository.at(board[y][x] - 1);
 }
 
 void Analyzer::setTileAt(int x, int y, int tileIndex) {
+    board[y][x] = tileIndex + 1;
+}
+
+void Analyzer::setTileAt(int x, int y, int tileIndex, int board[8][8]) {
     board[y][x] = tileIndex + 1;
 }
 
@@ -232,6 +251,7 @@ std::pair<int, int> Analyzer::getCoordsAtDirection(std::pair<int, int> pos, int 
 
 void Analyzer::outputBoard(const std::string &path) {
     std::ofstream oss(path);
+    oss << "0 0 3" << std::endl;
     if (oss.is_open()) {
         for (int i = 0; i < 8; ++i) {
             for (int j = 0; j < 8; ++j) {
@@ -252,13 +272,15 @@ void Analyzer::outputBoard(const std::string &path) {
 }
 
 void Analyzer::showCurrentBoard() {
+    outputBoard(Project::getProjectRootFilePath("/output.txt"));
+
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
     std::string pathOld = Project::getProjectRootFilePath("/visualiser/bin/win/visualiser.exe");
     const char *path = pathOld.c_str();
     int result = system(path);
     std::cout << "Visualiser return code: " << result << ", launched on path: " << path << std::endl;
 #else
-    execl(getProjectRootFilePath("/visualiser/bin/linux/visualiser"), nullptr);
+    system(Project::getProjectRootFilePath("/visualiser/bin/linux/visualiser").c_str());
 #endif
 }
 
@@ -300,7 +322,7 @@ bool Analyzer::populateGrid(std::vector<int> *tiles, int *posToCheck) {
     int index = 0;
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
-            if (!isValidPosition(i, j)) continue;
+            if (!isPlaceablePosition(i, j)) continue;
             if (!isValidTileOnPos(i, j, tiles->at(index))) {
                 *posToCheck = index;
                 return false;
@@ -329,18 +351,6 @@ bool Analyzer::checkLast20Same(std::vector<int> *tiles, const int *last20) {
     return true;
 }
 
-bool Analyzer::nextPermTileAt(std::vector<int> *tiles, int posToChange) {
-    int oldID = tileRepository.at(tiles->at(posToChange)).getIdentifier();
-    while (true) {
-        if (!getNextPermutation(tiles, posToChange))
-            return false;
-        if (tileRepository.at(tiles->at(posToChange)).getIdentifier() != oldID)
-            break;
-
-    }
-    return true;
-}
-
 int Analyzer::getLastOfLine(int x, int y, int direction) {
     Tile *currTile = getTileAt(x, y);
     std::pair<int, int> currPos(x, y);
@@ -360,6 +370,7 @@ int Analyzer::getLastOfLine(int x, int y, int direction) {
     }
 }
 
+
 int Analyzer::coordToIndex(int x, int y) {
     int index = y * 8 + x;
     if (y > 3)
@@ -375,16 +386,63 @@ int Analyzer::coordToIndex(int x, int y) {
     return index;
 }
 
-void Analyzer::outputWriteBoard(std::vector<int> *tiles, const std::string &path) {
+void Analyzer::overwriteBoard(std::vector<int> *tiles) {
     int index = 0;
     for (int i = 0; i < 8; ++i)
         for (int j = 0; j < 8; ++j) {
-            if (isValidPosition(i, j))
+            if (isPlaceablePosition(i, j))
                 setTileAt(i, j, tiles->at(index++));
         }
-
-    outputBoard(path);
 }
+
+void Analyzer::resetBoard() {
+    for (int i = 0; i < 8; ++i)
+        for (int j = 0; j < 8; ++j)
+            deleteTileAt(i, j);
+}
+
+void Analyzer::resetBoard(int board[8][8]) {
+    for (int i = 0; i < 8; ++i)
+        for (int j = 0; j < 8; ++j)
+            deleteTileAt(i, j, board);
+}
+
+void Analyzer::deleteTileAt(int i, int j) {
+    setTileAt(i, j, -1);
+}
+
+void Analyzer::deleteTileAt(int i, int j, int board[8][8]) {
+    setTileAt(i, j, -1, board);
+}
+
+std::tuple<int, int, int, int> Analyzer::getLineLastPosition(int x, int y, int direction) {
+    Tile *currTile = getTileAt(x, y);
+    std::pair<int, int> currPos(x, y);
+    unsigned char cameFromDir = direction;
+    int length = 0;
+    int largestTileIndex = coordToIndex(x, y);
+    while (true) {
+        if (currTile == nullptr) {
+            // We went out of the known map (maybe there are no tiles placed there, or even we came out to some station)
+            return std::tuple(currPos.first, currPos.second, cameFromDir, length);
+        }
+        unsigned char targetDir = currTile->connections[cameFromDir];
+        currPos = getCoordsAtDirection(currPos, targetDir);
+        int currIndex = coordToIndex(currPos.first, currPos.second);
+        if (currIndex > largestTileIndex)
+            largestTileIndex = currIndex;
+
+        currTile = getTileAt(currPos.first, currPos.second);
+        cameFromDir = Directions::flip(targetDir);
+        if (currPos.first == x && currPos.second == y && cameFromDir == direction) {
+            std::cerr << "We encountered a cycle!" << std::endl;
+            return std::tuple(x, y, direction, -1);
+        }
+        length++;
+    }
+}
+
+
 
 
 
