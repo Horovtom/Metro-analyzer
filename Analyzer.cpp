@@ -31,75 +31,6 @@ bool Analyzer::isPlaceablePosition(int x, int y) {
     return true;
 }
 
-
-void Analyzer::csp(int x, int y, int direction, std::vector<std::pair<int, int>> *tiles, int lenSoFar, int depth) {
-    // Is it the end of the line?
-    if (!isPlaceablePosition(x, y)) {
-        // It is the actual end of line, lets not do anything.
-        std::cerr << "End of line at the start?!" << std::endl;
-        return;
-    }
-
-
-    for (auto &tile : *tiles) {
-        if (tile.second <= 0) continue;
-        if (!isValidTileOnPos(x, y, tile.first)) continue;
-
-        tile.second--;
-        setTileAt(x, y, tile.first);
-
-        std::tuple<int, int, int, int> finishPosition = getLineLastPosition(x, y, direction);
-        int tarX = std::get<0>(finishPosition);
-        int tarY = std::get<1>(finishPosition);
-        int tarDirection = std::get<2>(finishPosition);
-        int length = std::get<3>(finishPosition) + lenSoFar;
-        if (!isPlaceablePosition(tarX, tarY)) {
-            // We actually ended the line...
-            // Check if it is longer than the current max found.
-            if (++cycle % 1000000000 == 0)
-                std::cout << "Explored " << cycle / 1000000 << "M possibilities" << std::endl;
-            if (longestPathLength < length) {
-                std::lock_guard<std::mutex> guard(mut);
-                if (longestPathLength < length) {
-                    // Overwrite
-                    for (int i = 0; i < 8; ++i) {
-                        for (int j = 0; j < 8; ++j) {
-                            longestBoard[i][j] = board[i][j];
-                        }
-                    }
-                    longestPathLength = length;
-                    std::cout << "New length: " << length << std::endl;
-                    if (length > 105)
-                        showCurrentBoard();
-                }
-            }
-        } else {
-            csp(tarX, tarY, tarDirection, tiles, length, depth + 1);
-        }
-
-        deleteTileAt(x, y);
-        tile.second++;
-    }
-}
-
-
-void Analyzer::cspStart(int x, int y, int direction) {
-
-//    std::vector<int[8][8]> grids;
-//    std::vector<std::thread> threads;
-//    std::vector<std::pair<int, int>> freeToUse = getTileCounts();
-//
-//    grids.resize(freeToUse.size() + 1);
-//    int longest = 0;
-//
-//    for (int i = 0 ; i < freeToUse.size(); ++i ) {
-//        std::vector<std::pair<int, int>> ftu = freeToUse;
-//        resetBoard(grids.at(i));
-//        std::thread th(cspStatic, x, y, direction, ftu, 0, 1, grids.at(i), &grids.at(grids.size() -1 ), &longest);
-//    }
-
-};
-
 std::vector<std::pair<int, int>> Analyzer::getTileCounts() {
     std::vector<std::pair<int, int>> res;
 
@@ -119,23 +50,6 @@ std::vector<std::pair<int, int>> Analyzer::getTileCounts() {
 
     return res;
 }
-
-
-int Analyzer::fillWithLongestPossibleRoute(int x, int y, int direction) {
-    // Ok, permutations are not going to cut it...
-    // Let's do some form of CSP
-
-    resetBoard();
-
-    std::vector<std::pair<int, int>> freeToUse = getTileCounts();
-
-//    cspStart(x,y,direction);
-
-    csp(x, y, direction, &freeToUse, 0, 1);
-
-    return longestPathLength;
-}
-
 
 bool Analyzer::isBoardValid() {
     Tile *t;
@@ -208,10 +122,6 @@ Tile *Analyzer::getTileAt(int x, int y) {
 }
 
 void Analyzer::setTileAt(int x, int y, int tileIndex) {
-    board[y][x] = tileIndex + 1;
-}
-
-void Analyzer::setTileAt(int x, int y, int tileIndex, int board[8][8]) {
     board[y][x] = tileIndex + 1;
 }
 
@@ -401,18 +311,8 @@ void Analyzer::resetBoard() {
             deleteTileAt(i, j);
 }
 
-void Analyzer::resetBoard(int board[8][8]) {
-    for (int i = 0; i < 8; ++i)
-        for (int j = 0; j < 8; ++j)
-            deleteTileAt(i, j, board);
-}
-
 void Analyzer::deleteTileAt(int i, int j) {
     setTileAt(i, j, -1);
-}
-
-void Analyzer::deleteTileAt(int i, int j, int board[8][8]) {
-    setTileAt(i, j, -1, board);
 }
 
 std::tuple<int, int, int, int> Analyzer::getLineLastPosition(int x, int y, int direction) {

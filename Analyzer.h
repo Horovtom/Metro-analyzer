@@ -8,7 +8,6 @@
 
 #include <vector>
 #include "Tile.h"
-#include <mutex>
 #include <cmake_variables.h>
 
 
@@ -33,8 +32,6 @@ public:
     Tile *getTileAt(int x, int y);
 
     void setTileAt(int x, int y, int tileIndex);
-
-    void setTileAt(int x, int y, int tileIndex, int board[8][8]);
 
     void resetTileAt(int x, int y);
 
@@ -61,7 +58,6 @@ private:
     int board[8][8]{};
     int currToChange = -1;
 
-    std::mutex mut;
 
     long long int cycle = 0;
 
@@ -89,8 +85,6 @@ private:
     std::vector<std::pair<int, int>> getTileCounts();
 
     void deleteTileAt(int i, int j);
-
-    void deleteTileAt(int i, int j, int board[8][8]);
 
     /**
      * @param direction Direction from which the lien comes to the x,y tile.
